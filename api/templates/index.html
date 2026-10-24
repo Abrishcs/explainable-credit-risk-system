@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Credit Risk Prediction System</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      padding: 30px 16px;
+      color: #222;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #1a237e, #283593);
+      color: white;
+      border-radius: 14px;
+      padding: 28px 32px;
+      margin-bottom: 28px;
+      box-shadow: 0 4px 18px rgba(26,35,126,0.18);
+    }
+    .header h1 { font-size: 1.7rem; font-weight: 700; letter-spacing: 0.3px; }
+    .header p  { margin-top: 6px; opacity: 0.85; font-size: 0.97rem; }
+    .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 0.78rem;
+      margin-top: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .card h2 {
+      font-size: 1.08rem;
+      color: #1a237e;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e8eaf6;
+    }
+
+    /* ── Form grid ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 520px) { .form-grid { grid-template-columns: 1fr; } }
+
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1.5px solid #dde0f0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #222;
+      background: #fafbff;
+      transition: border 0.2s;
+      outline: none;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: #3f51b5;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(63,81,181,0.1);
+    }
+
+    /* ── Button ── */
+    .btn-predict {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #1a237e, #3f51b5);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 22px;
+      letter-spacing: 0.5px;
+      transition: opacity 0.2s, transform 0.1s;
+      box-shadow: 0 4px 14px rgba(63,81,181,0.3);
+    }
+    .btn-predict:hover   { opacity: 0.93; transform: translateY(-1px); }
+    .btn-predict:active  { transform: translateY(0); }
+
+    /* ── Result ── */
+    .result-card {
+      border-radius: 14px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      display: none;
+    }
+    .result-approve {
+      background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+      border: 2px solid #66bb6a;
+    }
+    .result-reject {
+      background: linear-gradient(135deg, #ffebee, #fce4ec);
+      border: 2px solid #ef5350;
+    }
+    .result-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .result-icon { font-size: 2.4rem; }
+    .result-title { font-size: 1.6rem; font-weight: 800; }
+    .approve-color { color: #2e7d32; }
+    .reject-color  { color: #c62828; }
+
+    /* Probability bar */
+    .prob-section { margin-bottom: 18px; }
+    .prob-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.87rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #444;
+    }
+    .prob-bar-bg {
+      background: #e0e0e0;
+      border-radius: 20px;
+      height: 14px;
+      overflow: hidden;
+    }
+    .prob-bar-fill {
+      height: 100%;
+      border-radius: 20px;
+      transition: width 0.8s ease;
+    }
+    .fill-approve { background: linear-gradient(90deg, #43a047, #66bb6a); }
+    .fill-reject  { background: linear-gradient(90deg, #e53935, #ef9a9a); }
+
+    /* Risk badge */
+    .risk-badge {
+      display: inline-block;
+      padding: 4px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+      letter-spacing: 0.5px;
+    }
+    .risk-LOW       { background:#c8e6c9; color:#1b5e20; }
+    .risk-MEDIUM    { background:#fff9c4; color:#f57f17; }
+    .risk-HIGH      { background:#ffccbc; color:#bf360c; }
+    .risk-VERY-HIGH { background:#ffcdd2; color:#b71c1c; }
+
+    /* Explanation */
+    .explanation-box {
+      background: rgba(255,255,255,0.65);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 0.95rem;
+      margin-bottom: 18px;
+      line-height: 1.55;
+      color: #333;
+    }
+
+    /* SHAP factors */
+    .factors-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 520px) { .factors-grid { grid-template-columns: 1fr; } }
+
+    .factors-box { border-radius: 10px; padding: 14px; }
+    .factors-risk      { background: rgba(211,47,47,0.08); border: 1px solid #ef9a9a; }
+    .factors-protect   { background: rgba(46,125,50,0.08); border: 1px solid #a5d6a7; }
+    .factors-box h4    { font-size: 0.82rem; font-weight: 700; margin-bottom: 10px;
+                         text-transform: uppercase; letter-spacing: 0.5px; }
+    .risk-title    { color: #c62828; }
+    .protect-title { color: #2e7d32; }
+
+    .factor-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      font-size: 0.88rem;
+    }
+    .factor-row:last-child { border-bottom: none; }
+    .factor-name  { color: #333; }
+    .factor-shap-risk    { color: #c62828; font-weight: 700; font-size: 0.8rem; }
+    .factor-shap-protect { color: #2e7d32; font-weight: 700; font-size: 0.8rem; }
+
+    /* Loading spinner */
+    .spinner {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #3f51b5;
+      font-weight: 600;
+    }
+
+    /* Error box */
+    .error-box {
+      display: none;
+      background: #ffebee;
+      border: 1.5px solid #ef5350;
+      border-radius: 10px;
+      padding: 14px 18px;
+      color: #c62828;
+      margin-top: 14px;
+      font-size: 0.9rem;
+    }
+
+    .footer {
+      text-align: center;
+      color: #aaa;
+      font-size: 0.8rem;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>&#127968; Credit Risk Prediction System</h1>
+    <p>Fill in the applicant's details below to get an instant credit risk assessment powered by XGBoost + SHAP.</p>
+    <span class="badge">&#9679; XGBoost &nbsp;|&nbsp; SHAP Explainability &nbsp;|&nbsp; German Credit Dataset</span>
+  </div>
+
+  <!-- Result Card (shown after prediction) -->
+  <div class="result-card" id="resultCard">
+    <div class="result-header">
+      <span class="result-icon" id="resultIcon"></span>
+      <span class="result-title" id="resultTitle"></span>
+    </div>
+
+    <div class="prob-section">
+      <div class="prob-label">
+        <span>Default Probability</span>
+        <span id="probText"></span>
+      </div>
+      <div class="prob-bar-bg">
+        <div class="prob-bar-fill" id="probBar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <span class="risk-badge" id="riskBadge"></span>
+
+    <div class="explanation-box" id="explanationBox"></div>
+
+    <div class="factors-grid">
+      <div class="factors-box factors-risk">
+        <h4 class="risk-title">&#9650; Risk Factors</h4>
+        <div id="riskFactors"></div>
+      </div>
+      <div class="factors-box factors-protect">
+        <h4 class="protect-title">&#9660; Protective Factors</h4>
+        <div id="protectFactors"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Card -->
+  <div class="card">
+    <h2>&#128203; Applicant Information</h2>
+    <form id="predictForm">
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" name="Age" placeholder="e.g. 35" min="18" max="100" required />
+        </div>
+
+        <div class="form-group">
+          <label>Sex</label>
+          <select name="Sex" required>
+            <option value="">-- Select --</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Job Skill Level</label>
+          <select name="Job" required>
+            <option value="">-- Select --</option>
+            <option value="0">0 — Unskilled (non-resident)</option>
+            <option value="1">1 — Unskilled (resident)</option>
+            <option value="2">2 — Skilled</option>
+            <option value="3">3 — Highly Skilled</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Housing</label>
+          <select name="Housing" required>
+            <option value="">-- Select --</option>
+            <option value="own">Own</option>
+            <option value="rent">Rent</option>
+            <option value="free">Free</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Saving Accounts</label>
+          <select name="Saving accounts" required>
+            <option value="">-- Select --</option>
+            <option value="none">None (no account)</option>
+            <option value="little">Little</option>
+            <option value="moderate">Moderate</option>
+            <option value="quite rich">Quite Rich</option>
+            <option value="rich">Rich</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Checking Account</label>
+          <select name="Checking account" required>
+            <option value="">-- Select --</option>
+            <option value="none">None (no account)</option>
+            <option value="little">Little</option>
+            <option value="moderate">Moderate</option>
+            <option value="rich">Rich</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Credit Amount (DM)</label>
+          <input type="number" name="Credit amount" placeholder="e.g. 5000" min="1" required />
+        </div>
+
+        <div class="form-group">
+          <label>Duration (months)</label>
+          <input type="number" name="Duration" placeholder="e.g. 24" min="1" max="120" required />
+        </div>
+
+        <div class="form-group" style="grid-column: span 2;">
+          <label>Loan Purpose</label>
+          <select name="Purpose" required>
+            <option value="">-- Select --</option>
+            <option value="car">Car</option>
+            <option value="radio/TV">Radio / TV</option>
+            <option value="furniture/equipment">Furniture / Equipment</option>
+            <option value="business">Business</option>
+            <option value="education">Education</option>
+            <option value="repairs">Repairs</option>
+            <option value="domestic appliances">Domestic Appliances</option>
+            <option value="vacation/others">Vacation / Others</option>
+          </select>
+        </div>
+
+      </div><!-- /form-grid -->
+
+      <button type="submit" class="btn-predict">&#128269; Assess Credit Risk</button>
+    </form>
+
+    <div class="spinner" id="spinner">&#8987; Analysing applicant data...</div>
+    <div class="error-box" id="errorBox"></div>
+  </div><!-- /card -->
+
+  <p class="footer">XGBoost + SHAP &nbsp;&bull;&nbsp; German Credit Dataset (UCI) &nbsp;&bull;&nbsp; For educational use</p>
+</div>
+
+<script>
+  document.getElementById('predictForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    // Hide previous results / errors
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('errorBox').style.display   = 'none';
+    document.getElementById('spinner').style.display    = 'block';
+
+    // Build payload from form
+    const form = e.target;
+    const payload = {
+      Age:               parseInt(form.Age.value),
+      Sex:               form.Sex.value,
+      Job:               parseInt(form.Job.value),
+      Housing:           form.Housing.value,
+      "Saving accounts": form["Saving accounts"].value,
+      "Checking account":form["Checking account"].value,
+      "Credit amount":   parseInt(form["Credit amount"].value),
+      Duration:          parseInt(form.Duration.value),
+      Purpose:           form.Purpose.value,
+    };
+
+    try {
+      const resp = await fetch('/predict', {
+        method:  'POST',
+        headers: {'Content-Type': 'application/json'},
+        body:    JSON.stringify(payload),
+      });
+
+      const data = await resp.json();
+      document.getElementById('spinner').style.display = 'none';
+
+      if (!resp.ok) {
+        const msgs = data.details ? data.details.join('\n') : data.error;
+        showError(msgs);
+        return;
+      }
+
+      showResult(data);
+
+    } catch (err) {
+      document.getElementById('spinner').style.display = 'none';
+      showError('Could not connect to the API. Make sure app.py is running.');
+    }
+  });
+
+  function showResult(data) {
+    const isApprove = data.decision === 'APPROVE';
+    const card = document.getElementById('resultCard');
+
+    card.className = 'result-card ' + (isApprove ? 'result-approve' : 'result-reject');
+    card.style.display = 'block';
+
+    document.getElementById('resultIcon').textContent  = isApprove ? '✅' : '❌';
+    document.getElementById('resultTitle').textContent = data.decision;
+    document.getElementById('resultTitle').className   = 'result-title ' + (isApprove ? 'approve-color' : 'reject-color');
+
+    // Probability bar
+    const pct = (data.probability_of_default * 100).toFixed(1);
+    document.getElementById('probText').textContent    = pct + '%';
+    document.getElementById('probBar').style.width     = pct + '%';
+    document.getElementById('probBar').className       = 'prob-bar-fill ' + (isApprove ? 'fill-approve' : 'fill-reject');
+
+    // Risk badge
+    const riskClass = 'risk-' + data.risk_level.replace(' ', '-');
+    const badge = document.getElementById('riskBadge');
+    badge.textContent = data.risk_level + ' RISK';
+    badge.className   = 'risk-badge ' + riskClass;
+
+    // Explanation
+    document.getElementById('explanationBox').textContent = data.explanation;
+
+    // Risk factors
+    const riskDiv = document.getElementById('riskFactors');
+    riskDiv.innerHTML = '';
+    (data.risk_factors || []).forEach(f => {
+      riskDiv.innerHTML += `
+        <div class="factor-row">
+          <span class="factor-name">${f.feature}</span>
+          <span class="factor-shap-risk">+${f.shap.toFixed(3)}</span>
+        </div>`;
+    });
+
+    // Protective factors
+    const protDiv = document.getElementById('protectFactors');
+    protDiv.innerHTML = '';
+    (data.protective_factors || []).forEach(f => {
+      protDiv.innerHTML += `
+        <div class="factor-row">
+          <span class="factor-name">${f.feature}</span>
+          <span class="factor-shap-protect">${f.shap.toFixed(3)}</span>
+        </div>`;
+    });
+
+    // Scroll to result
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = '⚠ ' + msg;
+    box.style.display = 'block';
+  }
+</script>
+</body>
+</html>
